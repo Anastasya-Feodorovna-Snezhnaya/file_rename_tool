@@ -19,10 +19,11 @@
 
 ## 运行
 
-在仓库根目录执行：
+在终端中进入 `project/` 目录后执行：
 
 ```bash
-python project/main.py
+cd project
+python main.py
 ```
 
 ## 使用说明
@@ -59,15 +60,16 @@ python project/main.py
 
 ## 配置和日志位置
 
-程序使用 `os.getcwd()` 所代表的**进程当前工作目录**保存 `settings.json` 和 `rename_tool.log`。当前工作目录不一定是 `.exe` 文件所在目录；从快捷方式启动时，可通过快捷方式的“起始位置”设置工作目录。
+程序使用 `os.getcwd()` 所代表的**进程当前工作目录**保存 `settings.json` 和 `rename_tool.log`。按上述方式从 `project/` 目录启动时，这两个文件会生成在 `project/` 内，并由其中的 `.gitignore` 忽略。当前工作目录不一定是 `.exe` 文件所在目录；从快捷方式启动时，可通过快捷方式的“起始位置”设置工作目录。
 
 ## 打包为 Windows EXE
 
-在仓库根目录执行：
+在终端中进入 `project/` 目录后执行：
 
 ```bash
-python -m pip install -r project/requirements.txt
-pyinstaller --noconsole --onefile --name 批量文件重命名工具 project/main.py
+cd project
+python -m pip install -r requirements.txt
+pyinstaller --noconsole --onefile --name 批量文件重命名工具 main.py
 ```
 
 生成的可执行文件位于 `dist/` 目录。运行时的配置和日志仍写入进程当前工作目录。
