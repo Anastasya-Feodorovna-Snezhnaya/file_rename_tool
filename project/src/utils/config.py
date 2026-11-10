@@ -2,6 +2,10 @@ import json
 import logging
 from dataclasses import asdict, dataclass
 from pathlib import Path
+import re
+
+
+_GEOMETRY_RE = re.compile(r"^\d+x\d+(?:[+-]\d+){0,2}$")
 
 
 @dataclass
@@ -9,6 +13,10 @@ class NumberingSettings:
     mode: str = "fixed"
     extra_digits: int = 0
     threshold_percent: int = 100
+    window_geometry: str = "900x700"
+    preview_geometry: str = ""
+    batch_directory: str = ""
+    sequence_directory: str = ""
 
 
 class SettingsManager:
@@ -30,7 +38,25 @@ class SettingsManager:
                 raise ValueError("mode 必须为 fixed 或 threshold")
             if not 0 <= extra <= 5 or not 0 <= threshold <= 100:
                 raise ValueError("编号位数设置超出允许范围")
-            self.settings = NumberingSettings(mode, extra, threshold)
+
+            window_geometry = data.get("window_geometry", "900x700")
+            preview_geometry = data.get("preview_geometry", "")
+            if not isinstance(window_geometry, str) or not _GEOMETRY_RE.fullmatch(window_geometry):
+                window_geometry = "900x700"
+            if not isinstance(preview_geometry, str) or (
+                preview_geometry and not _GEOMETRY_RE.fullmatch(preview_geometry)
+            ):
+                preview_geometry = ""
+
+            self.settings = NumberingSettings(
+                mode=mode,
+                extra_digits=extra,
+                threshold_percent=threshold,
+                window_geometry=window_geometry,
+                preview_geometry=preview_geometry,
+                batch_directory=str(data.get("batch_directory", "")),
+                sequence_directory=str(data.get("sequence_directory", "")),
+            )
         except Exception:
             self.logger.exception("读取配置失败，使用默认设置：%s", self.path)
             self.settings = NumberingSettings()

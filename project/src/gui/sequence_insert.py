@@ -1,18 +1,24 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from pathlib import Path
 
 from src.core.rename_engine import execute_rename_plan
 from src.core.sequence_insert import build_sequence_insert_plan
+from src.core.file_scanner import scan_sequence
+from src.gui.preview_dialog import show_rename_preview
 
 
 class SequenceInsertFrame(ttk.Frame):
-    def __init__(self, master, get_width, logger):
+    def __init__(
+        self, master, get_width, logger, initial_directory="",
+        preview_geometry="", save_preview_geometry=None
+    ):
         super().__init__(master, padding=10)
         self.get_width = get_width
         self.logger = logger
+        self.preview_geometry = preview_geometry
+        self.save_preview_geometry = save_preview_geometry
 
-        self.directory_var = tk.StringVar()
+        self.directory_var = tk.StringVar(value=initial_directory)
         self.first_prefix_var = tk.StringVar(value="具名要求")
         self.second_prefix_var = tk.StringVar(value="具名要求xyz")
         self.tail_var = tk.StringVar(value="(n)")
@@ -37,16 +43,16 @@ class SequenceInsertFrame(ttk.Frame):
             wraplength=820
         ).pack(anchor="w", pady=(8, 10))
 
-        row = ttk.Frame(self)
-        row.pack(fill="x", pady=5)
-        ttk.Label(row, text="第一组前缀：", width=14).pack(side="left")
-        ttk.Entry(row, textvariable=self.first_prefix_var).pack(
-            side="left", fill="x", expand=True, padx=5
-        )
-        ttk.Label(row, text="第二组前缀：", width=14).pack(side="left")
-        ttk.Entry(row, textvariable=self.second_prefix_var).pack(
-            side="left", fill="x", expand=True, padx=5
-        )
+        for label, variable in (
+            ("第一组前缀：", self.first_prefix_var),
+            ("第二组前缀：", self.second_prefix_var),
+        ):
+            row = ttk.Frame(self)
+            row.pack(fill="x", pady=4)
+            ttk.Label(row, text=label, width=14).pack(side="left")
+            ttk.Entry(row, textvariable=variable).pack(
+                side="left", fill="x", expand=True, padx=5
+            )
 
         row = ttk.Frame(self)
         row.pack(fill="x", pady=5)
@@ -59,10 +65,15 @@ class SequenceInsertFrame(ttk.Frame):
 
         row = ttk.Frame(self)
         row.pack(fill="x", pady=5)
-        ttk.Label(row, text="合并后新前缀：", width=14).pack(side="left")
-        ttk.Entry(row, textvariable=self.output_prefix_var, width=24).pack(side="left", padx=5)
-        ttk.Label(row, text="起始序号：").pack(side="left", padx=(12, 4))
-        ttk.Entry(row, textvariable=self.start_var, width=8).pack(side="left")
+        ttk.Label(row, text="起始序号：", width=14).pack(side="left")
+        ttk.Entry(row, textvariable=self.start_var, width=10).pack(side="left", padx=5)
+
+        row = ttk.Frame(self)
+        row.pack(fill="x", pady=4)
+        ttk.Label(row, text="合并后前缀：", width=14).pack(side="left")
+        ttk.Entry(row, textvariable=self.output_prefix_var).pack(
+            side="left", fill="x", expand=True, padx=5
+        )
 
         ttk.Label(
             self,
@@ -101,8 +112,6 @@ class SequenceInsertFrame(ttk.Frame):
             (directory, first_prefix, second_prefix, tail,
              insert_after, output_prefix, start) = self._read_inputs()
 
-            # 先扫描两组文件，以实际合并数量计算编号位数。
-            from src.core.file_scanner import scan_sequence
             first = scan_sequence(directory, first_prefix, tail)
             second = scan_sequence(directory, second_prefix, tail)
             total = len(first) + len(second)
@@ -111,17 +120,12 @@ class SequenceInsertFrame(ttk.Frame):
                 directory, first_prefix, second_prefix, tail,
                 insert_after, output_prefix, start, width
             )
-            preview = "\n".join(
-                f"{item.source.name}  →  {item.target.name}" for item in plan
-            )
-            if not messagebox.askyesno(
-                "确认序列插入",
-                f"合并后共 {len(plan)} 个文件，以下为完整重命名计划：\n\n{preview}",
-                parent=self
+            if not show_rename_preview(
+                self, "确认序列插入", plan, self.preview_geometry,
+                self._remember_preview_geometry
             ):
                 return
 
-            # 重新扫描并重建计划，确保用户确认的内容没有过期。
             latest_first = scan_sequence(directory, first_prefix, tail)
             latest_second = scan_sequence(directory, second_prefix, tail)
             latest_total = len(latest_first) + len(latest_second)
@@ -145,3 +149,8 @@ class SequenceInsertFrame(ttk.Frame):
         except Exception as error:
             self.logger.exception("文件序列插入失败")
             messagebox.showerror("序列插入失败", str(error), parent=self)
+
+    def _remember_preview_geometry(self, geometry):
+        self.preview_geometry = geometry
+        if self.save_preview_geometry:
+            self.save_preview_geometry(geometry)

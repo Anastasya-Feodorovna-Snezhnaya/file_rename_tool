@@ -22,18 +22,25 @@ class MainWindow:
         self.settings = self.config_manager.settings
 
         root.title("批量文件重命名工具")
-        root.geometry("900x700")
+        root.geometry(self.settings.window_geometry)
         root.minsize(760, 560)
+        root.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._build_settings_panel()
         notebook = ttk.Notebook(root)
         notebook.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
         self.batch_frame = BatchRenameFrame(
-            notebook, get_width=self._get_width, logger=self.logger
+            notebook, get_width=self._get_width, logger=self.logger,
+            initial_directory=self.settings.batch_directory,
+            preview_geometry=self.settings.preview_geometry,
+            save_preview_geometry=self._save_preview_geometry,
         )
         self.sequence_frame = SequenceInsertFrame(
-            notebook, get_width=self._get_width, logger=self.logger
+            notebook, get_width=self._get_width, logger=self.logger,
+            initial_directory=self.settings.sequence_directory,
+            preview_geometry=self.settings.preview_geometry,
+            save_preview_geometry=self._save_preview_geometry,
         )
         notebook.add(self.batch_frame, text="普通批量重命名")
         notebook.add(self.sequence_frame, text="文件序列插入")
@@ -85,6 +92,28 @@ class MainWindow:
             self.config_manager.save()
         except (KeyError, ValueError, OSError) as error:
             messagebox.showerror("设置无效", str(error), parent=self.root)
+
+    def _save_preview_geometry(self, geometry):
+        self.settings.preview_geometry = geometry
+        # 两个功能页共用同一类预览窗口；切换页面后也使用最近一次的尺寸。
+        if hasattr(self, "batch_frame"):
+            self.batch_frame.preview_geometry = geometry
+        if hasattr(self, "sequence_frame"):
+            self.sequence_frame.preview_geometry = geometry
+        try:
+            self.config_manager.save()
+        except OSError:
+            self.logger.exception("保存预览窗口尺寸失败")
+
+    def _on_close(self):
+        self.settings.window_geometry = self.root.geometry()
+        self.settings.batch_directory = self.batch_frame.directory_var.get()
+        self.settings.sequence_directory = self.sequence_frame.directory_var.get()
+        try:
+            self.config_manager.save()
+        except OSError as error:
+            messagebox.showerror("配置保存失败", str(error), parent=self.root)
+        self.root.destroy()
 
     def _get_width(self, total_count: int) -> int:
         return get_number_width(
