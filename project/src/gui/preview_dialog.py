@@ -1,6 +1,10 @@
+import re
 import tkinter as tk
 from tkinter import ttk
 import tkinter.font as tkfont
+
+
+_GEOMETRY_RE = re.compile(r"^(\d+)x(\d+)(.*)$")
 
 
 def show_rename_preview(parent, title, plan, initial_geometry="", on_geometry_change=None):
@@ -12,7 +16,7 @@ def show_rename_preview(parent, title, plan, initial_geometry="", on_geometry_ch
 
     screen_width = dialog.winfo_screenwidth()
     screen_height = dialog.winfo_screenheight()
-    max_width = max(480, screen_width // 2)
+    max_width = max(1, screen_width // 2)
     max_height = max(360, int(screen_height * 0.78))
     dialog.maxsize(max_width, max_height)
     dialog.minsize(min(520, max_width), min(320, max_height))
@@ -28,11 +32,13 @@ def show_rename_preview(parent, title, plan, initial_geometry="", on_geometry_ch
     initial_width = min(max(640, desired_width), max_width)
     initial_height = min(max(360, min(680, 150 + len(plan) * 26)), max_height)
 
-    if initial_geometry:
-        try:
-            dialog.geometry(initial_geometry)
-        except tk.TclError:
-            dialog.geometry(f"{initial_width}x{initial_height}")
+    saved_geometry = _GEOMETRY_RE.fullmatch(initial_geometry) if initial_geometry else None
+    if saved_geometry:
+        saved_width = min(int(saved_geometry.group(1)), max_width)
+        saved_height = min(int(saved_geometry.group(2)), max_height)
+        dialog.geometry(
+            f"{saved_width}x{saved_height}{saved_geometry.group(3)}"
+        )
     else:
         dialog.geometry(f"{initial_width}x{initial_height}")
 
@@ -51,9 +57,9 @@ def show_rename_preview(parent, title, plan, initial_geometry="", on_geometry_ch
     )
     tree.heading("source", text="原文件名")
     tree.heading("target", text="新文件名")
-    available_column_width = max(160, (initial_width - 110) // 2)
-    tree.column("source", width=min(source_width, available_column_width), minwidth=80, stretch=True)
-    tree.column("target", width=min(target_width, available_column_width), minwidth=80, stretch=True)
+    # 保留按文本像素宽度计算的列宽；列总宽超过窗口时由水平滚动条浏览。
+    tree.column("source", width=source_width, minwidth=80, stretch=True)
+    tree.column("target", width=target_width, minwidth=80, stretch=True)
 
     vertical = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
     horizontal = ttk.Scrollbar(table_frame, orient="horizontal", command=tree.xview)
