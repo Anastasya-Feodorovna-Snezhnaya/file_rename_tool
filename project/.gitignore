@@ -16,7 +16,7 @@ env/
 .vscode/
 *.iml
 
-# Runtime configuration and logs (stored in the current working directory)
+# Runtime configuration and logs (when created under project/)
 settings.json
 rename_tool.log
 

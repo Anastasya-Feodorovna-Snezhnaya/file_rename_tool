@@ -22,7 +22,7 @@
 在仓库根目录执行：
 
 ```bash
-python main.py
+python project/main.py
 ```
 
 ## 使用说明
@@ -66,8 +66,8 @@ python main.py
 在仓库根目录执行：
 
 ```bash
-python -m pip install -r requirements.txt
-pyinstaller --noconsole --onefile --name 批量文件重命名工具 main.py
+python -m pip install -r project/requirements.txt
+pyinstaller --noconsole --onefile --name 批量文件重命名工具 project/main.py
 ```
 
 生成的可执行文件位于 `dist/` 目录。运行时的配置和日志仍写入进程当前工作目录。
