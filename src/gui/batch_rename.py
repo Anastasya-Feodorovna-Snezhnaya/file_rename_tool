@@ -21,7 +21,7 @@ class BatchRenameFrame(ttk.Frame):
         self.start_var = tk.StringVar(value="1")
 
         self._build()
-    
+
     def _build(self):
         row = ttk.Frame(self)
         row.pack(fill="x", pady=4)
@@ -83,12 +83,18 @@ class BatchRenameFrame(ttk.Frame):
         return directory, extension, prefix, tail, start
 
     def refresh(self):
+        # 刷新只依赖目录和扩展名筛选，不应被尚未完成编辑的命名参数阻断。
         try:
-            directory, extension, _, _, _ = self._read_inputs()
+            directory = self.directory_var.get().strip()
+            extension = validate_extension_filter(self.extension_var.get())
+            self.extension_var.set(extension)
             self.files = list_files(directory, extension)
             self._update_list()
             self.logger.info("刷新文件列表：%s，共 %d 个文件", directory, len(self.files))
         except Exception as error:
+            self.files = []
+            self._update_list()
+            self.logger.exception("刷新文件列表失败")
             messagebox.showerror("刷新失败", str(error), parent=self)
 
     def _update_list(self):

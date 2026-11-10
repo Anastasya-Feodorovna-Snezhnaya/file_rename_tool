@@ -92,11 +92,16 @@ def execute_rename_plan(operations: Iterable[RenameOperation],
                     f"{temp_path} -> {operation.source}: {rollback_error}"
                 )
 
+        # 不仅依赖异常列表，也检查每个原始路径是否实际恢复。
+        for operation in operations:
+            if not operation.source.exists():
+                rollback_errors.append(f"原始文件未能恢复：{operation.source}")
+
         detail = f"重命名失败：{original_error}"
         if rollback_errors:
             detail += "\n回滚未能完全完成：\n" + "\n".join(rollback_errors)
         else:
-            detail += "\n已尝试回滚，原始文件名已恢复。"
+            detail += "\n已尝试回滚，所有原始文件路径均已恢复。"
         if logger:
             logger.exception("执行重命名计划失败；%s", detail)
         raise RenameExecutionError(detail) from original_error

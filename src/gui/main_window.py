@@ -9,6 +9,12 @@ from src.utils.logger import get_logger
 
 
 class MainWindow:
+    MODE_LABELS = {
+        "fixed": "固定增加位数",
+        "threshold": "按容量阈值自动增加",
+    }
+    LABEL_MODES = {label: mode for mode, label in MODE_LABELS.items()}
+
     def __init__(self, root: tk.Tk):
         self.root = root
         self.logger = get_logger()
@@ -36,14 +42,14 @@ class MainWindow:
         frame = ttk.LabelFrame(self.root, text="编号位数设置")
         frame.pack(fill="x", padx=10, pady=8)
 
-        self.mode_var = tk.StringVar(value=self.settings.mode)
+        self.mode_var = tk.StringVar(value=self.MODE_LABELS[self.settings.mode])
         self.extra_var = tk.StringVar(value=str(self.settings.extra_digits))
         self.threshold_var = tk.StringVar(value=str(self.settings.threshold_percent))
 
         ttk.Label(frame, text="模式：").pack(side="left", padx=(8, 2), pady=6)
         mode = ttk.Combobox(
-            frame, textvariable=self.mode_var, state="readonly", width=16,
-            values=("fixed", "threshold")
+            frame, textvariable=self.mode_var, state="readonly", width=20,
+            values=tuple(self.LABEL_MODES)
         )
         mode.pack(side="left", padx=4)
         mode.bind("<<ComboboxSelected>>", self._save_settings)
@@ -66,11 +72,9 @@ class MainWindow:
 
     def _save_settings(self, event=None):
         try:
-            mode = self.mode_var.get()
+            mode = self.LABEL_MODES[self.mode_var.get()]
             extra = int(self.extra_var.get())
             threshold = int(self.threshold_var.get())
-            if mode not in {"fixed", "threshold"}:
-                raise ValueError("请选择有效的编号位数模式")
             if not 0 <= extra <= 5:
                 raise ValueError("固定额外位数必须在 0～5 之间")
             if not 0 <= threshold <= 100:
@@ -79,7 +83,7 @@ class MainWindow:
             self.settings.extra_digits = extra
             self.settings.threshold_percent = threshold
             self.config_manager.save()
-        except (ValueError, OSError) as error:
+        except (KeyError, ValueError, OSError) as error:
             messagebox.showerror("设置无效", str(error), parent=self.root)
 
     def _get_width(self, total_count: int) -> int:
